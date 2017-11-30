@@ -4,16 +4,20 @@ import (
 	"github.com/xlab/portmidi"
 )
 
+const (
+	PROG_KASHMIR = 0x1900
+)
+
 
 func kashmirMangle() filterFunc {
 	return func(s, d *Device, event *portmidi.Event) bool {
-		if program != 0x1900 {
+		if program != PROG_KASHMIR {
 			return false
 		}
 
 		if ok, v := nordSlotChangeMessage(s, event); ok {
 			switch v {
-			case 0x00:
+			case SLOT_A:
 				setLeadHold(d, true, event.Timestamp)
 			default:
 				setLeadHold(d, false, event.Timestamp)
@@ -21,13 +25,13 @@ func kashmirMangle() filterFunc {
 		}
 
 		switch slot {
-		case 0x00:
+		case SLOT_A:
 			return false
-		case 0x2b:
+		case SLOT_B:
 			return s.matches("Electro") && d.matches("Lead") // slot B, electro plays lead
-		case 0x55:
+		case SLOT_C:
 			return s.matches("Lead") && d.matches("Electro") // slot C, lead plays electro
-		case 0x7f:
+		case SLOT_D:
 			return true
 		default:
 			return false
