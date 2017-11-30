@@ -19,6 +19,8 @@ func kashmirMangle() filterFunc {
 			switch v {
 			case SLOT_A:
 				setLeadHold(d, true, event.Timestamp)
+			case SLOT_B:
+				setLeadHold(d, true, event.Timestamp)
 			default:
 				setLeadHold(d, false, event.Timestamp)
 			}
@@ -26,13 +28,14 @@ func kashmirMangle() filterFunc {
 
 		switch slot {
 		case SLOT_A:
+			return s.matches("Lead") && d.matches("Electro") // slot C, lead plays electro
 			return false
 		case SLOT_B:
-			return s.matches("Electro") && d.matches("Lead") // slot B, electro plays lead
-		case SLOT_C:
-			return s.matches("Lead") && d.matches("Electro") // slot C, lead plays electro
-		case SLOT_D:
 			return true
+		case SLOT_C:
+			return true
+		case SLOT_D:
+			return s.matches("Lead") && d.matches("Electro") // slot C, lead plays electro
 		default:
 			return false
 		}
