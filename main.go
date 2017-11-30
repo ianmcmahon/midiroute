@@ -25,7 +25,6 @@ type filterFunc func(s, d *Device, event *portmidi.Event) bool
 
 var (
 	program uint32 = 0x00000000
-	slot byte
 )
 
 func programChangeFilter() filterFunc {
@@ -51,65 +50,6 @@ func programChangeFilter() filterFunc {
 		return false
 	}
 }
-
-func nordSlotChangeMessage(s *Device, event *portmidi.Event) (bool, byte) {
-	if s.matches("Electro") && event.Message.Status() == 0xb0 && event.Message.Data1() == 0x31 {
-		return true, event.Message.Data2()
-	}
-	return false, 0xFF
-}
-
-func nordElectroSlotTracking() filterFunc {
-	return func(s, d *Device, event *portmidi.Event) bool {
-		if ok, v := nordSlotChangeMessage(s, event); ok {
-			slot = v
-		}
-
-		return false
-	}
-}
-
-func setLeadHold(d *Device, state bool, timestamp int32) {
-	var val byte = 0x00
-	if state {
-		val = 0x7f
-	}
-	d.outputStream.Sink() <- portmidi.Event{timestamp, portmidi.NewMessage(0xb0, 0x3a, val), nil}
-}
-
-func kashmirMangle() filterFunc {
-	return func(s, d *Device, event *portmidi.Event) bool {
-		fmt.Printf("%s -> %s: <PROGRAM %x> <SLOT %x> %x %x %x\n", s.Name, d.Name, program, slot, event.Message.Status(), event.Message.Data1(), event.Message.Data2())
-		if program != 0x1900 {
-			return false
-		}
-
-		if ok, v := nordSlotChangeMessage(s, event); ok {
-			switch v {
-			case 0x00:
-				setLeadHold(d, true, event.Timestamp)
-			default:
-				setLeadHold(d, false, event.Timestamp)
-			}
-		}
-
-		switch slot {
-		case 0x00:
-			return false
-		case 0x2b:
-			return s.matches("Electro") && d.matches("Lead") // slot B, electro plays lead
-		case 0x55:
-			return s.matches("Lead") && d.matches("Electro") // slot C, lead plays electro
-		case 0x7f:
-			return true
-		default:
-			return false
-		}
-
-		return false
-	}
-}
-
 
 func devicesMatching(match ...string) map[string]*Device {
 	numDevices := portmidi.CountDevices()
@@ -178,16 +118,6 @@ func main() {
 	// note these are positive filters, meaning returning true means forward the message
 
 	/*
-	expressionRewrite := func(s, d *Device, event *portmidi.Event) bool {
-		if strings.Contains(s.Name, "Electro") && strings.Contains(d.Name, "Lead") {
-			if event.Message.Status() == 0xb0 && event.Message.Data1() == 11 { // CC #11
-				// rewrite to CC #7
-				event.Message = portmidi.NewMessage(0xb0, 7, event.Message.Data2())
-				return true
-			}
-		}
-		return false
-	}
 	*/
 
 	filters := []filterFunc{
