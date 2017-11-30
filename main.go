@@ -59,6 +59,9 @@ func devicesMatching(match ...string) map[string]*Device {
 
 	for i := 0; i < numDevices; i++ {
 		info := portmidi.GetDeviceInfo(portmidi.DeviceID(i))
+		if info.IsInputAvailable {
+			fmt.Printf("\t[%s]\n", info.Name)
+		}
 		device, ok := devices[info.Name]
 		if !ok {
 			device = &Device{Name: info.Name, inputDeviceID: -1, outputDeviceID: -1}
